@@ -77,10 +77,12 @@ async function run() {
 
     // get services of a specific user by email
     app.get("/all-services/:email", async (req, res) => {
-      const email = req.query.email;
-      const query = { email: email };
+      const email = req.params.email;
+      const query = { providerEmail: email };
       const cursor = serviceCollection.find(query);
       const services = await cursor.toArray();
+      console.log(query);
+
       res.send(services);
     });
 
@@ -133,11 +135,20 @@ async function run() {
       res.send(result);
     });
 
-    // booked services
+    // create booked services
     app.post("/book-service", async (req, res) => {
       const service = req.body;
       const result = await bookedServiceCollection.insertOne(service);
       res.send(result);
+    });
+
+    // get booked services by email
+    app.get("/booked-services/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { userEmail: email };
+      const cursor = bookedServiceCollection.find(query);
+      const services = await cursor.toArray();
+      res.send(services);
     });
 
     // Send a ping to confirm a successful connection
