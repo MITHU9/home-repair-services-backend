@@ -151,6 +151,16 @@ async function run() {
       res.send(services);
     });
 
+    // get services by search query with service name
+    app.get("/search-services/:query", async (req, res) => {
+      const query = req.params.query;
+      const cursor = serviceCollection.find({
+        serviceName: { $regex: query, $options: "i" },
+      });
+      const services = await cursor.toArray();
+      res.send(services);
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
