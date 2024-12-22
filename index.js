@@ -125,6 +125,14 @@ async function run() {
       res.send(result);
     });
 
+    // Delete a service
+    app.delete("/delete-service/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await serviceCollection.deleteOne(query);
+      res.send(result);
+    });
+
     // booked services
     app.post("/book-service", async (req, res) => {
       const service = req.body;
