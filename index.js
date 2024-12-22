@@ -33,6 +33,12 @@ async function run() {
   try {
     await client.connect();
 
+    // Create a new database and collection
+    const serviceCollection = client
+      .db("homeRepairStore")
+      .collection("services");
+
+    //auth related APIs
     app.post("/jwt", (req, res) => {
       const user = req.body;
       const token = jwt.sign(user, process.env.JWT_SECRET, {
@@ -47,6 +53,29 @@ async function run() {
         .send({
           message: "Token created",
         });
+    });
+
+    //Service related APIs
+
+    // Get all services
+    app.get("/all-services", async (req, res) => {
+      const cursor = serviceCollection.find({});
+      const services = await cursor.toArray();
+      res.send(services);
+    });
+
+    //get popular services
+    app.get("/popular-services", async (req, res) => {
+      const cursor = serviceCollection.find({}).limit(6);
+      const services = await cursor.toArray();
+      res.send(services);
+    });
+
+    // Add a new service
+    app.post("/add-service", async (req, res) => {
+      const service = req.body;
+      const result = await serviceCollection.insertOne(service);
+      res.send(result);
     });
 
     // Send a ping to confirm a successful connection
