@@ -75,6 +75,15 @@ async function run() {
       res.send(services);
     });
 
+    // get services of a specific user by email
+    app.get("/all-services/:email", async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const cursor = serviceCollection.find(query);
+      const services = await cursor.toArray();
+      res.send(services);
+    });
+
     // Get a single service
     app.get("/services/:id", async (req, res) => {
       const id = req.params.id;
@@ -87,6 +96,32 @@ async function run() {
     app.post("/add-service", async (req, res) => {
       const service = req.body;
       const result = await serviceCollection.insertOne(service);
+      res.send(result);
+    });
+
+    // Update a service
+    app.put("/update-service/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const updatedService = req.body;
+      const options = { upsert: true };
+
+      const updatedDoc = {
+        $set: {
+          imageUrl: updatedService.imageUrl,
+          serviceName: updatedService.serviceName,
+          price: updatedService.price,
+          serviceArea: updatedService.serviceArea,
+          description: updatedService.description,
+        },
+      };
+
+      const result = await serviceCollection.updateOne(
+        query,
+        updatedDoc,
+        options
+      );
+
       res.send(result);
     });
 
