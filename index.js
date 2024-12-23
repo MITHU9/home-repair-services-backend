@@ -91,9 +91,21 @@ async function run() {
 
     // Get all services
     app.get("/all-services", async (req, res) => {
-      const cursor = serviceCollection.find({});
+      //console.log(req.query);
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 2;
+      const cursor = serviceCollection
+        .find({})
+        .skip((page - 1) * limit)
+        .limit(limit);
       const services = await cursor.toArray();
       res.send(services);
+    });
+
+    //get product count for pagination
+    app.get("/service-count", async (req, res) => {
+      const count = await serviceCollection.estimatedDocumentCount();
+      res.send({ count });
     });
 
     //get popular services
@@ -163,6 +175,7 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await serviceCollection.deleteOne(query);
+
       res.send(result);
     });
 
@@ -193,6 +206,37 @@ async function run() {
       });
       const services = await cursor.toArray();
       res.send(services);
+    });
+
+    // get services by email from booked services
+    app.get("/service-to-do", verifyToken, async (req, res) => {
+      const email = req.query.email;
+      const query = { providerEmail: email };
+
+      if (req.user.email !== email) {
+        return res.status(403).send({ message: "Forbidden access" });
+      }
+
+      const cursor = bookedServiceCollection.find(query);
+      const services = await cursor.toArray();
+      res.send(services);
+    });
+
+    // update service status
+    app.patch("/update-status/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const { updatedStatus } = req.body;
+
+      const updatedDoc = {
+        $set: {
+          serviceStatus: updatedStatus,
+        },
+      };
+
+      const result = await bookedServiceCollection.updateOne(query, updatedDoc);
+
+      res.send(result);
     });
 
     // Send a ping to confirm a successful connection
