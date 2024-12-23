@@ -51,12 +51,40 @@ async function run() {
       res
         .cookie("token", token, {
           httpOnly: true,
-          secure: false,
-          sameSite: "none",
+          secure: process.env.NODE_ENV === "production",
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
         })
         .send({
-          message: "Token created",
+          success: true,
         });
+    });
+
+    //verify token
+    const verifyToken = (req, res, next) => {
+      const token = req.cookies?.token;
+      if (!token) {
+        return res
+          .status(401)
+          .send({ message: "Access Denied! unauthorized user" });
+      }
+      try {
+        const verified = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = verified;
+        next();
+      } catch (error) {
+        res.status(400).send({ message: "Invalid Token" });
+      }
+    };
+
+    //clear cookie on logout
+    app.post("/logout", (req, res) => {
+      res
+        .clearCookie("token", {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+        })
+        .send({ success: true });
     });
 
     //Service related APIs
@@ -76,12 +104,15 @@ async function run() {
     });
 
     // get services of a specific user by email
-    app.get("/all-services/:email", async (req, res) => {
-      const email = req.params.email;
+    app.get("/my-services", verifyToken, async (req, res) => {
+      const email = req.query.email;
       const query = { providerEmail: email };
+
+      if (req.user.email !== email) {
+        return res.status(403).send({ message: "Forbidden access" });
+      }
       const cursor = serviceCollection.find(query);
       const services = await cursor.toArray();
-      console.log(query);
 
       res.send(services);
     });
@@ -143,9 +174,12 @@ async function run() {
     });
 
     // get booked services by email
-    app.get("/booked-services/:email", async (req, res) => {
-      const email = req.params.email;
+    app.get("/booked-services", verifyToken, async (req, res) => {
+      const email = req.query.email;
       const query = { userEmail: email };
+      if (req.user.email !== email) {
+        return res.status(403).send({ message: "Forbidden access" });
+      }
       const cursor = bookedServiceCollection.find(query);
       const services = await cursor.toArray();
       res.send(services);
